@@ -1,0 +1,40 @@
+name: 긴급 수정
+description: 즉시 배포가 필요한 문제
+title: "[HOTFIX] "
+labels: [hotfix]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: 영역
+      options:
+        - server
+        - client
+        - common
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 문제 상황
+      description: 지금 무엇이 잘못 동작하고 있나요.
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: 영향 범위
+      description: 어떤 기능과 사용자가 영향을 받나요.
+    validations:
+      required: true
+
+  - type: textarea
+    id: action
+    attributes:
+      label: 조치 방법
+      value: |
+        -
+    validations:
+      required: true

@@ -1,0 +1,44 @@
+name: Commit Lint
+
+# commit-msg 훅은 로컬 장치라 --no-verify 나 훅 미설치로 우회된다.
+# PR 에 올라온 커밋을 같은 규칙으로 다시 검사한다.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 훅 스크립트를 그대로 재사용해 규칙이 두 곳으로 갈라지지 않게 한다.
+      - name: Validate commit messages
+        run: |
+          base='${{ github.event.pull_request.base.sha }}'
+          failed=0
+          message=$(mktemp)
+
+          for sha in $(git rev-list --no-merges "$base"..HEAD); do
+            git log -1 --format=%B "$sha" > "$message"
+            if ! .githooks/commit-msg "$message"; then
+              echo "::error::$(git log -1 --format='%h %s' "$sha")"
+              failed=1
+            fi
+          done
+
+          if [ "$failed" -ne 0 ]; then
+            echo "커밋 메시지 규칙은 AGENTS.md 를 참고하세요."
+            exit 1
+          fi
+
+          echo "모든 커밋 메시지가 규칙에 맞습니다."

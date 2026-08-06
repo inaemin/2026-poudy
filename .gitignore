@@ -3,7 +3,6 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 .gradle/
-!gradle/wrapper/gradle-wrapper.jar
 *.class
 *.log
 
@@ -33,13 +32,16 @@ out/
 ### VS Code ###
 .vscode/
 
+### 환경 변수 ###
+# 백엔드와 프론트엔드 모두 해당한다. 견본인 .env.example 만 커밋한다.
+.env
+.env.*
+!.env.example
+
 ### Node / Frontend ###
 node_modules/
 dist/
 coverage/
-.env
-.env.*
-!.env.example
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

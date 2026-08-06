@@ -1,10 +1,17 @@
 spring:
+  # 로컬 개발용 .env 를 읽는다. 없으면 그냥 넘어가므로 CI 와 컨테이너에는 영향이 없다.
+  # 실제 환경 변수가 .env 보다 우선하므로 배포 환경 값이 항상 이긴다.
+  config:
+    import: optional:file:.env[.properties]
   application:
     name: poudy
+  # 기본값을 두지 않는다. 환경 변수를 빠뜨리거나 이름을 틀렸을 때 localhost 로
+  # 조용히 붙으려다 엉뚱한 커넥션 에러를 내는 대신 즉시 실패한다.
+  # 비밀번호 기본값을 저장소에 커밋해 두지 않으려는 목적도 있다.
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/poudy}
-    username: ${DB_USERNAME:poudy}
-    password: ${DB_PASSWORD:poudy}
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
   jpa:
     open-in-view: false
     hibernate:
@@ -15,6 +22,12 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  # 롤링 배포로 컨테이너가 교체될 때 처리 중이던 요청을 끊지 않는다.
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+
+server:
+  shutdown: graceful
 
 management:
   endpoints:
@@ -27,6 +40,10 @@ management:
         enabled: true
 
 springdoc:
+  # 키를 사전순으로 정렬해 문서를 만든다. 정렬하지 않으면 클래스패스 스캔 순서가
+  # 그대로 반영되는데, 그 순서는 파일 시스템에 따라 달라진다. 로컬(macOS)과
+  # CI(Linux)에서 순서만 다른 문서가 나오면 멀쩡한 커밋이 최신이 아닌 것으로 잡힌다.
+  writer-with-order-by-keys: true
   api-docs:
     path: /v3/api-docs
   swagger-ui:

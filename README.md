@@ -1,0 +1,23 @@
+# poudy
+
+| 디렉터리 | 내용 |
+| --- | --- |
+| [server](server) | Spring Boot 백엔드 |
+| client | 프론트엔드 (준비 중) |
+| common | 백엔드에서 생성한 API 타입 (`api.d.ts`) |
+
+## 클론 후 1회
+
+```bash
+./setup-git.sh
+```
+
+Git 훅과 커밋 메시지 템플릿을 등록합니다. 모든 팀원이 실행합니다.
+
+## 커밋 규칙
+
+[AGENTS.md](AGENTS.md) 를 따릅니다.
+
+## API 타입
+
+`common/api.d.ts` 는 백엔드에서 생성합니다. 프론트엔드는 그대로 import 합니다. 생성 방법은 [server/README.md](server/README.md) 를 참고하세요.

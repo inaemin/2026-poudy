@@ -1,0 +1,40 @@
+name: 버그 제보
+description: 의도대로 동작하지 않는 기능
+title: "[BUG] "
+labels: [bug]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: 영역
+      options:
+        - server
+        - client
+        - common
+    validations:
+      required: true
+
+  - type: textarea
+    id: situation
+    attributes:
+      label: 문제 상황
+      description: 무엇이 어떻게 잘못 동작하나요.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 재현 방법
+      value: |
+        1.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 기대 동작
+      description: 원래 어떻게 동작해야 하나요.
+    validations:
+      required: true

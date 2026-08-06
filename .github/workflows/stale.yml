@@ -1,0 +1,41 @@
+name: Stale
+
+# 매일 09:00 KST 에 방치된 이슈와 PR 을 정리한다.
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v11
+        with:
+          days-before-stale: 14
+          days-before-close: 7
+
+          stale-issue-label: stale
+          stale-pr-label: stale
+
+          stale-issue-message: |
+            2주 동안 변화가 없어 `stale` 로 표시합니다.
+            계속 진행 중이면 댓글을 남겨 주세요. 1주 뒤 자동으로 닫힙니다.
+          stale-pr-message: |
+            2주 동안 변화가 없어 `stale` 로 표시합니다.
+            계속 진행 중이면 댓글을 남겨 주세요. 1주 뒤 자동으로 닫힙니다.
+
+          close-issue-message: 활동이 없어 닫습니다. 필요하면 다시 열어 주세요.
+          close-pr-message: 활동이 없어 닫습니다. 필요하면 다시 열어 주세요.
+
+          # 긴급 건과 논의 중인 항목은 대상에서 뺀다.
+          exempt-issue-labels: hotfix,question
+          exempt-pr-labels: hotfix
+
+          # 마일스톤이나 담당자가 있으면 진행 중으로 본다.
+          exempt-all-milestones: true
+          exempt-all-assignees: true

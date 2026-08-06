@@ -1,0 +1,65 @@
+#!/bin/sh
+
+set -e
+
+message_file=$1
+
+# git 이 커밋 직전에 버리는 부분을 먼저 걷어내, 실제로 남을 메시지만 검사한다.
+#   - `git commit -v` 가 붙이는 가위선(>8) 아래 diff 전체
+#   - 주석 줄과 CR
+#   - 앞뒤 빈 줄
+# 이 과정을 거치지 않으면 diff 안의 문자열이나 템플릿 주석이 규칙 위반으로 잡힌다.
+cleaned=$(
+    sed -e '/^#[[:space:]]*-\{3,\}[[:space:]]*>8[[:space:]]*-\{3,\}/,$d' "$message_file" |
+        sed -e 's/\r$//' -e '/^[[:space:]]*#/d' |
+        awk '
+            /[^[:space:]]/ {
+                for (i = 0; i < pending; i++) print ""
+                pending = 0
+                print
+                seen = 1
+                next
+            }
+            seen { pending++ }
+        '
+)
+
+subject=$(printf '%s\n' "$cleaned" | sed -n '1p')
+
+if ! printf '%s\n' "$subject" | grep -Eq \
+    '^(:sparkles: feat|:bug: fix|:books: docs|:art: style|:zap: refact|:rocket: rename|:fire: remove) : [^[:space:]].+$'; then
+    echo "[commit-msg] 제목 형식이 올바르지 않습니다."
+    echo "  예: :sparkles: feat : 회원 가입 API 추가"
+    exit 1
+fi
+
+# 제목 다음 줄이 비어 있지 않으면 git 이 그 줄까지 제목으로 묶어 한 줄 로그가 깨진다.
+if [ "$(printf '%s\n' "$cleaned" | wc -l)" -ge 2 ] &&
+    [ -n "$(printf '%s\n' "$cleaned" | sed -n '2p')" ]; then
+    echo "[commit-msg] 제목과 본문 사이에는 빈 줄이 필요합니다."
+    exit 1
+fi
+
+if printf '%s\n' "$cleaned" | grep -Eiq '^(Co-authored-by:|Generated with)|🤖'; then
+    echo "[commit-msg] 공동 작성자 또는 도구 서명은 사용할 수 없습니다."
+    exit 1
+fi
+
+# 꼬릿말은 선택 사항이지만, 작성한다면 저장소 규칙의 이슈 형식만 허용한다.
+invalid_footer=$(printf '%s\n' "$cleaned" | grep -Ei '^(Ref|Close):' |
+    grep -Ev '^(Ref|Close): #[0-9]+$' || true)
+if [ -n "$invalid_footer" ]; then
+    echo "[commit-msg] 이슈 꼬릿말 형식이 올바르지 않습니다."
+    echo "  예: Ref: #7 또는 Close: #7"
+    exit 1
+fi
+
+# 꼬릿말도 본문과 빈 줄로 구분한다.
+if printf '%s\n' "$cleaned" | awk '
+        NR > 1 && /^(Ref|Close):/ && previous != "" { found = 1 }
+        { previous = $0 }
+        END { exit found ? 0 : 1 }
+    '; then
+    echo "[commit-msg] 본문과 꼬릿말 사이에는 빈 줄이 필요합니다."
+    exit 1
+fi

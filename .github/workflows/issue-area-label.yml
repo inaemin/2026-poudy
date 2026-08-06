@@ -1,0 +1,56 @@
+name: Issue Area Label
+
+# 이슈 템플릿의 영역 선택값을 읽어 해당 레이블을 붙인다.
+# PR 은 변경 경로로 판단할 수 있지만 이슈는 코드가 없어 판단할 근거가 없다.
+#
+# 레이블은 저장소 자원이라 기본 GITHUB_TOKEN 으로 처리된다. 별도 토큰이 필요 없다.
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  issues: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v9
+        with:
+          script: |
+            const areas = ['server', 'client', 'common'];
+            const body = context.payload.issue.body || '';
+
+            // 이슈 폼은 '### 영역' 다음 줄에 선택값을 넣는다.
+            const match = body.match(/###\s*영역\s*\n+\s*([^\n]+)/);
+            const picked = match ? match[1].trim() : null;
+
+            if (!picked || !areas.includes(picked)) {
+              core.info(`영역을 판단할 수 없습니다: ${picked ?? '(없음)'}`);
+              return;
+            }
+
+            const issue = {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.issue.number,
+            };
+            const current = context.payload.issue.labels.map(l => l.name);
+
+            if (current.includes(picked)) {
+              core.info(`이미 ${picked} 레이블이 있습니다.`);
+              return;
+            }
+
+            // 영역을 바꾼 경우를 위해 다른 영역 레이블은 떼어 낸다.
+            for (const stale of areas.filter(a => a !== picked && current.includes(a))) {
+              await github.rest.issues.removeLabel({ ...issue, name: stale });
+              core.info(`${stale} 레이블 제거`);
+            }
+
+            await github.rest.issues.addLabels({ ...issue, labels: [picked] });
+            core.info(`${picked} 레이블 추가`);
