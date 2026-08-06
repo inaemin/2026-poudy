@@ -5,11 +5,22 @@ on:
     branches: [main]
     paths:
       - 'server/**'
+      - 'common/api.d.ts'
       - '.github/workflows/server-ci.yml'
   pull_request:
     paths:
       - 'server/**'
+      - 'common/api.d.ts'
       - '.github/workflows/server-ci.yml'
+
+# 워크플로가 저장소를 읽기만 하면 되므로 토큰 권한을 최소로 제한한다.
+permissions:
+  contents: read
+
+# 같은 브랜치에 연속으로 push 하면 이전 실행을 취소한다.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 defaults:
   run:
@@ -45,6 +56,24 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # 커밋 훅을 우회했거나 훅이 설치되지 않은 채로 올라온 변경을 잡는다.
+      # 다시 생성해서 커밋된 것과 다르면 실패시킨다.
+      - name: Regenerate OpenAPI artifacts
+        run: ./gradlew generateApiTypes --no-daemon
+
+      - name: Verify OpenAPI artifacts are up to date
+        working-directory: .
+        run: |
+          if ! git diff --exit-code -- server/openapi.json common/api.d.ts; then
+            echo "::error::OpenAPI 생성물이 최신이 아닙니다. './gradlew generateApiTypes' 실행 후 커밋하세요."
+            exit 1
+          fi
 
       - name: Build and test
         run: ./gradlew build --no-daemon
