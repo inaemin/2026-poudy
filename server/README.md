@@ -8,33 +8,36 @@ Spring Boot 백엔드.
 | --- | --- |
 | 개발 언어 | Java 21 LTS |
 | 프레임워크 | Spring Boot 4.1 |
-| 빌드 도구 | Gradle Wrapper |
-| 데이터베이스 | PostgreSQL (AWS RDS) |
+| 빌드 도구 | Gradle 9.2.1 (Wrapper) |
+| 데이터베이스 | PostgreSQL 18 (운영: AWS RDS 예정) |
 | 데이터 접근 | Spring Data JPA |
 | 스키마 변경 관리 | Flyway |
-| 단위 테스트 | JUnit 5, Mockito |
+| 테스트 DB | H2 (`test`), PostgreSQL (`integration`) |
+| 단위 테스트 | JUnit 6, Mockito 5 |
 | 통합 테스트 | Spring Boot Test |
-| API 문서 | OpenAPI (Swagger UI) |
+| API 문서 | OpenAPI / springdoc 3.1 (Swagger UI) |
+| API 타입 생성 | openapi-typescript |
+| 코드 품질 | Spotless, Checkstyle |
 | 자동 검증 | GitHub Actions |
-| 배포 방식 | Docker 이미지 기반 배포 |
+| 배포 방식 | Docker 이미지 (CI 빌드 검증까지 구성) |
 
 ## 요구 사항
 
-JDK 21 이상, Node.js 22.
+JDK 21 이상, Node.js 22, Docker.
 
 ## 실행
 
 ```bash
-cp .env.example .env   # 클론 후 1회, 값을 채웁니다
+docker compose up -d
 ./gradlew bootRun
 ```
 
-`DB_URL`, `DB_USERNAME`, `DB_PASSWORD` 는 기본값이 없습니다. 비어 있으면 기동 시점에 실패합니다.
+`dev` 프로필로 뜨고 `compose.yaml` 의 로컬 PostgreSQL 에 붙습니다. 접속 정보는 기본값이 들어 있어 따로 설정하지 않습니다.
 
-환경 변수로 직접 넘겨도 됩니다. 실제 환경 변수가 `.env` 보다 우선합니다.
+포트를 바꿨거나 다른 로컬 DB 를 쓸 때만 `.env` 를 만듭니다.
 
 ```bash
-DB_URL=jdbc:postgresql://<host>:5432/poudy DB_USERNAME=<user> DB_PASSWORD=<password> ./gradlew bootRun
+cp .env.example .env
 ```
 
 | 주소 | 용도 |
@@ -44,6 +47,19 @@ DB_URL=jdbc:postgresql://<host>:5432/poudy DB_USERNAME=<user> DB_PASSWORD=<passw
 | `/actuator/health` | 헬스 체크 |
 
 앞의 두 주소는 `prod` 프로필에서 꺼집니다.
+
+## 데이터베이스 분리
+
+접속 정보는 프로필별로 따로 정의합니다. `application.yml` 에는 두지 않습니다.
+
+| 프로필 | 접속 대상 | 기본값 |
+| --- | --- | --- |
+| `dev` (기본) | `compose.yaml` 의 로컬 PostgreSQL | 있음 (localhost) |
+| `prod` | 환경 변수로 주입한 운영 DB | 없음 — 비어 있으면 기동 실패 |
+
+`dev` 는 `.env` 를 읽고 `prod` 는 읽지 않습니다. 운영 접속 정보는 배포 환경의 환경 변수로만 들어옵니다.
+
+**운영 접속 정보를 `.env` 에 적지 마세요.** `dev` 프로필도 Flyway 로 마이그레이션을 실행하므로, 로컬에서 앱을 띄우는 것만으로 운영 스키마가 바뀝니다.
 
 ## 스키마 변경
 
@@ -59,14 +75,7 @@ src/main/resources/db/migration/V1__create_member.sql
 
 ## API 타입 생성
 
-컨트롤러나 DTO 를 바꿨으면 실행하고 결과물도 함께 커밋합니다.
-
-```bash
-./gradlew generateApiTypes
-git add openapi.json ../common/api.d.ts
-```
-
-잊으면 `pre-push` 훅과 `Server CI` 가 막습니다.
+컨트롤러나 DTO 를 바꾸면 `pre-push` 훅이 `openapi.json` 과 `common/api.d.ts` 를 갱신해 커밋합니다. 안내가 뜨면 `git push` 를 한 번 더 실행하면 됩니다.
 
 DTO 필드에 `@NotNull` 을 붙이면 생성되는 TypeScript 타입에서 옵셔널(`?`)이 사라집니다.
 

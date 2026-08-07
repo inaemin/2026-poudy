@@ -14,7 +14,7 @@ set -e
 root=$(git rev-parse --show-toplevel)
 cd "$root"
 
-generation_inputs="server/src server/build.gradle server/settings.gradle"
+generation_inputs="server/src/main server/build.gradle server/settings.gradle"
 generated="server/openapi.json common/api.d.ts"
 
 # 생성물 자체가 바뀐 push 도 검사한다. 생성 입력만 보면, 손으로 고친 생성물이
@@ -85,11 +85,23 @@ if cmp -s server/openapi.json "$backup/openapi.json" &&
     exit 0
 fi
 
-echo "[pre-push] OpenAPI 생성물이 최신이 아닙니다. push 를 중단합니다."
+# 갱신본을 그대로 커밋한다. 여기서 되돌리면 커밋 내용과 작업 트리가 어긋난다.
+trap - EXIT
+rm -rf "$backup"
+
+# 경로를 지정해 다른 스테이징 변경이 함께 커밋되지 않게 한다.
+if ! git commit -q -m "refactor : OpenAPI 생성물 갱신" -- $generated; then
+    echo "[pre-push] 생성물 커밋에 실패했습니다."
+    exit 1
+fi
+
 echo
-echo "  아래를 실행해 갱신한 뒤 커밋하고 다시 push 하세요."
+echo "[pre-push] 생성물이 낡아 자동으로 커밋했습니다."
+git --no-pager log --format="  %h %s" -1
 echo
-echo "    cd server && ./gradlew generateApiTypes"
-echo "    git add server/openapi.json common/api.d.ts"
+echo "  이 커밋까지 보내려면 다시 push 하세요."
 echo
+
+# push 대상 SHA 는 훅 실행 전에 확정되어 방금 만든 커밋이 포함되지 않는다.
+# 그래서 이번 push 는 중단하고 다시 실행하게 한다.
 exit 1

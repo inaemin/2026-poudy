@@ -4,6 +4,8 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '4.1.0'
     id 'org.springdoc.openapi-gradle-plugin' version '1.9.0'
+    id 'com.diffplug.spotless' version '8.9.0'
+    id 'checkstyle'
 }
 
 group = 'com.poudy'
@@ -53,6 +55,29 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-actuator-test'
     testRuntimeOnly 'com.h2database:h2'
+}
+
+// 자바 포맷을 자동으로 맞춘다. spotlessCheck 는 check 에 자동으로 물려서
+// build 를 돌리면 형식이 어긋난 코드가 걸린다.
+spotless {
+    java {
+        // google-java-format 은 javac 내부 API 를 쓰므로 Gradle 데몬 JVM 에
+        // --add-exports 를 붙여야 하고, 데몬 JDK 에 따라 동작이 갈린다.
+        // eclipse 포매터는 그런 의존이 없고 규칙도 XML 로 조정할 수 있다.
+        eclipse().configFile(rootProject.file('config/formatter.xml'))
+        removeUnusedImports()
+        importOrder()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+// 형식이 아닌 규칙을 검사한다. checkstyleMain 과 checkstyleTest 도
+// check 에 자동으로 물린다. 형식 규칙은 spotless 담당이라 여기 두지 않는다.
+checkstyle {
+    toolVersion = '13.9.0'
+    configFile = file('config/checkstyle/checkstyle.xml')
+    maxWarnings = 0
 }
 
 // bootJar만 만들면 되므로 사용하지 않는 plain jar 생성을 끈다.

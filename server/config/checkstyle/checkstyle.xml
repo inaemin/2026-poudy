@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+        "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+        "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<!--
+  형식(들여쓰기, 줄 길이, 공백)은 Spotless 가 담당한다.
+  여기에는 Spotless 가 고칠 수 없는 규칙만 둔다. 형식 규칙을 넣으면
+  두 도구가 서로 다른 것을 요구해 고칠 방법이 없어진다.
+-->
+<module name="Checker">
+    <property name="severity" value="error"/>
+    <property name="fileExtensions" value="java"/>
+
+    <module name="TreeWalker">
+
+        <!-- 이름 규칙 -->
+        <module name="PackageName"/>
+        <module name="TypeName"/>
+        <module name="MethodName"/>
+        <module name="MemberName"/>
+        <module name="ParameterName"/>
+        <module name="LocalVariableName"/>
+        <module name="ConstantName"/>
+
+        <!-- import -->
+        <module name="UnusedImports"/>
+        <module name="RedundantImport"/>
+        <module name="AvoidStarImport"/>
+        <module name="IllegalImport"/>
+
+        <!-- 크기 -->
+        <module name="MethodLength">
+            <property name="max" value="40"/>
+        </module>
+        <module name="ParameterNumber">
+            <property name="max" value="5"/>
+        </module>
+
+        <!-- 흔한 실수 -->
+        <module name="EmptyCatchBlock"/>
+        <module name="EqualsHashCode"/>
+        <module name="MissingSwitchDefault"/>
+        <module name="SimplifyBooleanExpression"/>
+        <module name="SimplifyBooleanReturn"/>
+        <module name="StringLiteralEquality"/>
+        <module name="NeedBraces"/>
+        <module name="FallThrough"/>
+
+        <!-- 로그 대신 표준 출력을 쓰는 것을 막는다 -->
+        <module name="RegexpSinglelineJava">
+            <property name="format" value="System\.(out|err)\.print"/>
+            <property name="message" value="표준 출력 대신 로거를 사용하세요."/>
+            <property name="ignoreComments" value="true"/>
+        </module>
+
+    </module>
+</module>

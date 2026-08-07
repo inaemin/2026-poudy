@@ -14,6 +14,8 @@
 
 Git 훅과 커밋 메시지 템플릿을 등록합니다. 모든 팀원이 실행합니다.
 
+Windows 는 Git Bash 에서 실행합니다. cmd 와 PowerShell 은 `.sh` 를 실행하지 못하고 오류도 남기지 않습니다.
+
 ## 커밋 규칙
 
 [AGENTS.md](AGENTS.md) 를 따릅니다.

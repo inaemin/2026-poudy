@@ -27,9 +27,23 @@ cleaned=$(
 subject=$(printf '%s\n' "$cleaned" | sed -n '1p')
 
 if ! printf '%s\n' "$subject" | grep -Eq \
-    '^(:sparkles: feat|:bug: fix|:books: docs|:art: style|:zap: refact|:rocket: rename|:fire: remove) : [^[:space:]].+$'; then
+    '^(feat|fix|docs|style|refactor|rename|remove) : [^[:space:]].+$'; then
     echo "[commit-msg] 제목 형식이 올바르지 않습니다."
-    echo "  예: :sparkles: feat : 회원 가입 API 추가"
+    echo "  예: feat : 회원 가입 API 추가"
+    exit 1
+fi
+
+# 이모지는 제목 어디에 있든 막는다. 형식만 검사하면 이전 형식의 이모지가
+# 제목 안으로 자리만 옮긴 채 그대로 통과한다.
+#   - `:sparkles:` 같은 코드 형태
+#   - 실제 문자. 바이트를 고정 문자열로 비교해야 grep 구현을 타지 않는다.
+#     \360\237 이 U+1F300~U+1FAFF(🎉, 🚀, 🔥)를 통째로 덮고,
+#     그 범위 밖이라 걸리지 않는 ✨ 와 ⚡ 는 문자를 직접 지정한다.
+if printf '%s\n' "$subject" | grep -Eq ':[a-z_]+:' ||
+    printf '%s\n' "$subject" | LC_ALL=C grep -qF \
+        -e "$(printf '\360\237')" -e '✨' -e '⚡'; then
+    echo "[commit-msg] 제목에 이모지를 쓸 수 없습니다."
+    echo "  예: feat : 회원 가입 API 추가"
     exit 1
 fi
 

@@ -15,9 +15,6 @@ import org.springframework.context.annotation.Configuration;
  * 생기는 순간 이 설정이 조용히 무시된다.
  */
 @Configuration
-@OpenAPIDefinition(
-        info = @Info(title = "Poudy API", version = "v1"),
-        servers = @Server(url = "/")
-)
+@OpenAPIDefinition(info = @Info(title = "Poudy API", version = "v1"), servers = @Server(url = "/"))
 public class OpenApiConfig {
 }
