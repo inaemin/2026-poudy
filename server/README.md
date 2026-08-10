@@ -17,7 +17,7 @@ Spring Boot 백엔드.
 | 통합 테스트 | Spring Boot Test |
 | API 문서 | OpenAPI / springdoc 3.1 (Swagger UI) |
 | API 타입 생성 | openapi-typescript |
-| 코드 품질 | Spotless, Checkstyle |
+| 코드 품질 | Spotless, Checkstyle (우아한테크코스 코드 스타일) |
 | 자동 검증 | GitHub Actions |
 | 배포 방식 | Docker 이미지 (CI 빌드 검증까지 구성) |
 

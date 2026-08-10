@@ -1,17 +1,105 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+  우아한테크코스 IntelliJ 코드 스타일(WootecoStyle.xml)을 Eclipse 포매터로 옮긴 것.
+  원본에 없는 항목은 적지 않아 Eclipse 기본값을 따른다.
+  IntelliJ 사용자는 원본 파일을 그대로 import 하면 된다.
+-->
 <profiles version="21">
   <profile kind="CodeFormatterProfile" name="poudy" version="21">
+
+    <!-- ============ 들여쓰기와 줄 길이 ============ -->
     <setting id="org.eclipse.jdt.core.formatter.tabulation.char" value="space"/>
     <setting id="org.eclipse.jdt.core.formatter.tabulation.size" value="4"/>
     <setting id="org.eclipse.jdt.core.formatter.indentation.size" value="4"/>
+    <setting id="org.eclipse.jdt.core.formatter.use_tabs_only_for_leading_indentations" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.indent_empty_lines" value="false"/>
+    <!-- 이어지는 줄 8 칸. Eclipse 는 배수로 적는다. -->
+    <setting id="org.eclipse.jdt.core.formatter.continuation_indentation" value="2"/>
+    <setting id="org.eclipse.jdt.core.formatter.continuation_indentation_for_array_initializer" value="2"/>
     <setting id="org.eclipse.jdt.core.formatter.lineSplit" value="120"/>
-    <setting id="org.eclipse.jdt.core.formatter.comment.line_length" value="120"/>
+
+    <!-- ============ 주석 ============ -->
+    <!--
+      원본과 다른 유일한 항목. 원본은 주석도 접지만 켜지 않는다.
+      Eclipse 는 한글을 한 글자로 세고 화면 폭은 두 칸이라, 120 칸 이내로 판단한
+      줄이 실제로는 150 칸을 넘고 나눠 둔 문단이 한 줄로 합쳐진다.
+      아래 세 항목은 주석 포맷을 다시 켤 때만 의미가 있다.
+    -->
+    <setting id="org.eclipse.jdt.core.formatter.comment.format_line_comments" value="false"/>
     <setting id="org.eclipse.jdt.core.formatter.comment.format_block_comments" value="false"/>
     <setting id="org.eclipse.jdt.core.formatter.comment.format_javadoc_comments" value="false"/>
-    <setting id="org.eclipse.jdt.core.formatter.comment.format_line_comments" value="false"/>
-    <setting id="org.eclipse.jdt.core.formatter.insert_new_line_at_end_of_file_if_missing" value="insert"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.format_header" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.line_length" value="120"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.indent_parameter_description" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.align_tags_names_descriptions" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.align_tags_descriptions_grouped" value="false"/>
+
+    <!-- ============ 빈 줄 ============ -->
+    <!--
+      이 구간은 원본이 손대지 않은 항목까지 적는다.
+      Eclipse 기본값이 0 이고 IntelliJ 는 1 이라, 비워 두면 package 와 import 뒤
+      빈 줄까지 지워진다.
+    -->
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_before_package" value="0"/>
     <setting id="org.eclipse.jdt.core.formatter.blank_lines_after_package" value="1"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_before_imports" value="0"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_after_imports" value="1"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_between_import_groups" value="1"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_between_type_declarations" value="1"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_before_member_type" value="1"/>
     <setting id="org.eclipse.jdt.core.formatter.blank_lines_before_method" value="1"/>
-    <setting id="org.eclipse.jdt.core.formatter.join_wrapped_lines" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_before_abstract_method" value="1"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_before_field" value="0"/>
+    <setting id="org.eclipse.jdt.core.formatter.number_of_empty_lines_to_preserve" value="1"/>
+
+    <!--
+      닫는 괄호 앞과 클래스 헤더 뒤의 빈 줄을 지우는 원본 설정은 옮기지 못했다.
+      Eclipse 에서 0 은 "지운다"가 아니라 "새로 넣지 않는다"는 뜻이고, 제거는
+      위의 number_of_empty_lines_to_preserve 가 혼자 결정한다. 그 값을 0 으로
+      내리면 사람이 넣은 빈 줄까지 전부 사라져 그대로 두었다.
+    -->
+    <setting id="org.eclipse.jdt.core.formatter.number_of_blank_lines_at_end_of_method_body" value="0"/>
+    <setting id="org.eclipse.jdt.core.formatter.number_of_blank_lines_at_end_of_code_block" value="0"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_after_last_class_body_declaration" value="0"/>
+    <setting id="org.eclipse.jdt.core.formatter.blank_lines_before_first_class_body_declaration" value="0"/>
+
+    <!-- ============ 한 줄로 접기 ============ -->
+    <!--
+      if (x) return; 처럼 붙여 쓴 제어문을 펼친다.
+      keep_imple_if 의 빠진 s 는 오타가 아니라 Eclipse 상수가 그렇다. simple 로
+      적으면 조용히 무시된다. 마지막 항목의 값도 true/false 가 아니라 상수다.
+    -->
+    <setting id="org.eclipse.jdt.core.formatter.keep_imple_if_on_one_line" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_then_statement_on_same_line" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_else_statement_on_same_line" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_simple_for_body_on_same_line" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_simple_while_body_on_same_line" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_simple_do_while_body_on_same_line" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_code_block_on_one_line" value="one_line_never"/>
+
+    <!-- ============ 줄 나눔 ============ -->
+    <!-- 원본의 WRAP=1(필요할 때만)에 해당하는 Eclipse 값이 16 이다. -->
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_parameters_in_method_declaration" value="16"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_parameters_in_constructor_declaration" value="16"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_arguments_in_method_invocation" value="16"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_arguments_in_allocation_expression" value="16"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_arguments_in_explicit_constructor_call" value="16"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_superclass_in_type_declaration" value="16"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_superinterfaces_in_type_declaration" value="16"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_throws_clause_in_method_declaration" value="16"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_selector_in_method_invocation" value="16"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_binary_expression" value="16"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_conditional_expression" value="16"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_expressions_in_for_loop_header" value="16"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_expressions_in_array_initializer" value="16"/>
+    <!-- 연산자를 다음 줄 앞에 둔다. -->
+    <setting id="org.eclipse.jdt.core.formatter.wrap_before_binary_operator" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.wrap_before_conditional_operator" value="true"/>
+
+    <!-- ============ 기타 ============ -->
+    <!-- new int[] {1, 2} -->
+    <setting id="org.eclipse.jdt.core.formatter.insert_space_before_opening_brace_in_array_initializer" value="insert"/>
+    <setting id="org.eclipse.jdt.core.formatter.insert_new_line_at_end_of_file_if_missing" value="insert"/>
+
   </profile>
 </profiles>

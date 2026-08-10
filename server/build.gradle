@@ -57,23 +57,33 @@ dependencies {
     testRuntimeOnly 'com.h2database:h2'
 }
 
-// 자바 포맷을 자동으로 맞춘다. spotlessCheck 는 check 에 자동으로 물려서
-// build 를 돌리면 형식이 어긋난 코드가 걸린다.
+// 자바 포맷을 자동으로 맞춘다. 규칙은 config/formatter.xml 에 있다.
+// spotlessCheck 는 check 에 물려 있어 build 로도 걸린다.
 spotless {
     java {
-        // google-java-format 은 javac 내부 API 를 쓰므로 Gradle 데몬 JVM 에
-        // --add-exports 를 붙여야 하고, 데몬 JDK 에 따라 동작이 갈린다.
-        // eclipse 포매터는 그런 의존이 없고 규칙도 XML 로 조정할 수 있다.
-        eclipse().configFile(rootProject.file('config/formatter.xml'))
+        target 'src/**/*.java'
+
+        // 스텝은 선언 순서대로 돈다.
+        // 원본 스타일 파일에 없는 스텝이다. IntelliJ 는 코드 스타일이 아니라
+        // Optimize Imports 로 처리한다.
         removeUnusedImports()
-        importOrder()
+
+        // static 을 먼저 두고 나머지를 한 덩어리로. '\\#' 가 static 이다.
+        importOrder('\\#', '')
+
+        eclipse().configFile(rootProject.file('config/formatter.xml'))
+
+        // 포매터가 줄 끝 공백을 남기는 경우가 있어 뒤에 둔다.
         trimTrailingWhitespace()
         endWithNewline()
+
+        // // spotless:off 와 // spotless:on 사이는 원문 그대로 둔다.
+        toggleOffOn()
     }
 }
 
-// 형식이 아닌 규칙을 검사한다. checkstyleMain 과 checkstyleTest 도
-// check 에 자동으로 물린다. 형식 규칙은 spotless 담당이라 여기 두지 않는다.
+// 포매터가 고칠 수 없는 규칙만 검사한다. checkstyleMain 과 checkstyleTest 도
+// check 에 물린다.
 checkstyle {
     toolVersion = '13.9.0'
     configFile = file('config/checkstyle/checkstyle.xml')

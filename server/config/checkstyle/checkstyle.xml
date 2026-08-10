@@ -4,55 +4,22 @@
         "https://checkstyle.org/dtds/configuration_1_3.dtd">
 
 <!--
-  형식(들여쓰기, 줄 길이, 공백)은 Spotless 가 담당한다.
-  여기에는 Spotless 가 고칠 수 없는 규칙만 둔다. 형식 규칙을 넣으면
-  두 도구가 서로 다른 것을 요구해 고칠 방법이 없어진다.
+  WootecoStyle.xml 중 포매터가 고칠 수 없는 두 가지만 둔다.
+  형식 규칙은 config/formatter.xml 담당이라 여기 넣지 않는다.
 -->
 <module name="Checker">
     <property name="severity" value="error"/>
     <property name="fileExtensions" value="java"/>
 
     <module name="TreeWalker">
+        <!-- IF/WHILE/FOR/DOWHILE_BRACE_FORCE=3. 포매터는 줄만 펼치고 중괄호는 못 넣는다. -->
+        <module name="NeedBraces">
+            <property name="tokens"
+                      value="LITERAL_IF, LITERAL_ELSE, LITERAL_FOR, LITERAL_WHILE, LITERAL_DO"/>
+        </module>
 
-        <!-- 이름 규칙 -->
-        <module name="PackageName"/>
-        <module name="TypeName"/>
-        <module name="MethodName"/>
-        <module name="MemberName"/>
-        <module name="ParameterName"/>
-        <module name="LocalVariableName"/>
-        <module name="ConstantName"/>
-
-        <!-- import -->
-        <module name="UnusedImports"/>
-        <module name="RedundantImport"/>
+        <!-- CLASS/NAMES_COUNT_TO_USE_IMPORT_ON_DEMAND=999 -->
         <module name="AvoidStarImport"/>
-        <module name="IllegalImport"/>
-
-        <!-- 크기 -->
-        <module name="MethodLength">
-            <property name="max" value="40"/>
-        </module>
-        <module name="ParameterNumber">
-            <property name="max" value="5"/>
-        </module>
-
-        <!-- 흔한 실수 -->
-        <module name="EmptyCatchBlock"/>
-        <module name="EqualsHashCode"/>
-        <module name="MissingSwitchDefault"/>
-        <module name="SimplifyBooleanExpression"/>
-        <module name="SimplifyBooleanReturn"/>
-        <module name="StringLiteralEquality"/>
-        <module name="NeedBraces"/>
-        <module name="FallThrough"/>
-
-        <!-- 로그 대신 표준 출력을 쓰는 것을 막는다 -->
-        <module name="RegexpSinglelineJava">
-            <property name="format" value="System\.(out|err)\.print"/>
-            <property name="message" value="표준 출력 대신 로거를 사용하세요."/>
-            <property name="ignoreComments" value="true"/>
-        </module>
-
     </module>
+
 </module>
