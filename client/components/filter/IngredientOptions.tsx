@@ -9,6 +9,7 @@ import { SearchField } from "@/components/ui/SearchField";
 import { SelectedIngredientChip } from "@/components/ui/SelectedIngredientChip";
 import { track } from "@/lib/analytics/track";
 import { fetchIngredients } from "@/lib/api/products";
+import { type ExcludeCodeIngredients, restrictedExcludeCodes, restrictedIngredientIds } from "@/lib/domain/conflict";
 import type { ExcludeCode, Filter } from "@/lib/domain/filter";
 import { ingredientCountLabel } from "@/lib/domain/ingredient-search";
 import { useSuggestions } from "@/lib/hooks/useSuggestions";
@@ -30,6 +31,11 @@ export function IngredientOptions({ draft, setDraft, excludeCodes, names }: Ingr
   const [keyword, setKeyword] = useState("");
   const { items, loading } = useSuggestions(keyword, fetcher, "ingredient");
   const typing = keyword.trim().length > 0;
+  const codeIngredients: ExcludeCodeIngredients = new Map(
+    excludeCodes.map((code) => [code.code, code.ingredients.map((ingredient) => ingredient.id)]),
+  );
+  const disabledIncludeIds = restrictedIngredientIds(draft, codeIngredients);
+  const disabledExcludeCodes = restrictedExcludeCodes(draft, codeIngredients);
 
   const selectedCount = draft.includeIngredientIds.length + draft.excludeIngredientIds.length;
 
@@ -109,6 +115,7 @@ export function IngredientOptions({ draft, setDraft, excludeCodes, names }: Ingr
                       <ConditionButton
                         kind="include"
                         active={included}
+                        disabled={!included && disabledIncludeIds.has(item.id)}
                         ingredientName={item.koreanName}
                         onClick={() => toggleIngredient("includeIngredientIds", item)}
                       />
@@ -177,26 +184,31 @@ export function IngredientOptions({ draft, setDraft, excludeCodes, names }: Ingr
 
                 return (
                   <li key={code.code}>
-                    <button
-                      type="button"
-                      role="checkbox"
-                      aria-checked={checked}
-                      onClick={() => toggleCode(code.code)}
+                    <label
                       className={`flex h-13 w-full items-center gap-2 rounded-[10px] border px-2.5 text-left ${
-                        checked ? "border-transparent bg-[#F2F3F5]" : "border-[#DDE0E4] bg-[#F7F7F8]"
-                      }`}
+                        !checked && disabledExcludeCodes.has(code.code)
+                          ? "cursor-not-allowed opacity-40"
+                          : "cursor-pointer"
+                      } ${checked ? "border-transparent bg-[#F2F3F5]" : "border-[#DDE0E4] bg-[#F7F7F8]"}`}
                     >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        disabled={!checked && disabledExcludeCodes.has(code.code)}
+                        onChange={() => toggleCode(code.code)}
+                        className="peer sr-only"
+                      />
                       <span className={`flex-1 text-[11px] text-[#4D5159] ${checked ? "font-bold" : "font-semibold"}`}>
                         {code.name}
                       </span>
                       <span
-                        className={`flex size-[18px] shrink-0 items-center justify-center rounded border ${
+                        className={`flex size-[18px] shrink-0 items-center justify-center rounded border peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#212124] ${
                           checked ? "border-[#212124] bg-[#212124]" : "border-[#B9BDC5] bg-white"
                         }`}
                       >
                         {checked ? <Icon name="check" size={12} className="text-white" /> : null}
                       </span>
-                    </button>
+                    </label>
                   </li>
                 );
               })}
