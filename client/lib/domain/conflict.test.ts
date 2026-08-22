@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { type ExcludeCodeIngredients, findConflicts, findContradictingIngredientIds, hasConflict } from "./conflict";
+import {
+  type ExcludeCodeIngredients,
+  findConflicts,
+  hasConflict,
+  restrictedExcludeCodes,
+  restrictedIngredientIds,
+} from "./conflict";
 import { EMPTY_FILTER, type Filter } from "./filter";
 
 // 리모넨(101)과 리날룰(102)은 향료 성분군에 속한다.
@@ -43,16 +49,24 @@ describe("findConflicts", () => {
 
     expect(hasConflict(filter, codeIngredients)).toBe(false);
   });
+
+  it("같은 성분을 포함과 제외에 함께 넣으면 충돌이다", () => {
+    const filter = filterWith({ includeIngredientIds: [6], excludeIngredientIds: [6] });
+
+    expect(hasConflict(filter, codeIngredients)).toBe(true);
+  });
 });
 
-describe("findContradictingIngredientIds", () => {
-  it("같은 성분을 포함과 제외에 함께 넣으면 모순이다", () => {
-    const filter = filterWith({ includeIngredientIds: [6, 7], excludeIngredientIds: [7] });
-    expect(findContradictingIngredientIds(filter)).toEqual([7]);
+describe("충돌 선택 제한", () => {
+  it("제외한 성분군에 속한 성분 ID를 제한한다", () => {
+    const filter = filterWith({ excludeCodes: ["FRAGRANCE_ALLERGENS"] });
+
+    expect(restrictedIngredientIds(filter, codeIngredients)).toEqual(new Set([101, 102]));
   });
 
-  it("겹치지 않으면 빈 목록이다", () => {
-    const filter = filterWith({ includeIngredientIds: [6], excludeIngredientIds: [101] });
-    expect(findContradictingIngredientIds(filter)).toEqual([]);
+  it("포함한 성분이 속한 성분군 코드를 제한한다", () => {
+    const filter = filterWith({ includeIngredientIds: [102, 131] });
+
+    expect(restrictedExcludeCodes(filter, codeIngredients)).toEqual(new Set(["FRAGRANCE_ALLERGENS", "SULFATES"]));
   });
 });

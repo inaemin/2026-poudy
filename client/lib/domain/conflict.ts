@@ -21,10 +21,18 @@ export const findConflicts = (filter: Filter, codeIngredients: ExcludeCodeIngred
     .filter((conflict) => conflict.ingredientIds.length > 0);
 
 export const hasConflict = (filter: Filter, codeIngredients: ExcludeCodeIngredients): boolean =>
-  findConflicts(filter, codeIngredients).length > 0;
+  findConflicts(filter, codeIngredients).length > 0 ||
+  filter.includeIngredientIds.some((id) => filter.excludeIngredientIds.includes(id));
 
-/**
- * 같은 성분을 포함과 제외에 동시에 넣은 경우. 이쪽은 성분군과 무관하게 언제나 모순이다.
- */
-export const findContradictingIngredientIds = (filter: Filter): readonly number[] =>
-  filter.includeIngredientIds.filter((id) => filter.excludeIngredientIds.includes(id));
+export const restrictedIngredientIds = (filter: Filter, codeIngredients: ExcludeCodeIngredients): ReadonlySet<number> =>
+  new Set(filter.excludeCodes.flatMap((code) => codeIngredients.get(code) ?? []));
+
+export const restrictedExcludeCodes = (
+  filter: Filter,
+  codeIngredients: ExcludeCodeIngredients,
+): ReadonlySet<ExcludeCode> =>
+  new Set(
+    [...codeIngredients]
+      .filter(([, ingredientIds]) => ingredientIds.some((id) => filter.includeIngredientIds.includes(id)))
+      .map(([code]) => code),
+  );
