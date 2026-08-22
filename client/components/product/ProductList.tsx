@@ -16,6 +16,7 @@ import { SortHeader } from "@/components/ui/SortHeader";
 import type { ListSurface } from "@/lib/analytics/events";
 import { track } from "@/lib/analytics/track";
 import { fetchProducts } from "@/lib/api/products";
+import { type ExcludeCodeIngredients, hasConflict } from "@/lib/domain/conflict";
 import { EMPTY_FILTER, type Filter } from "@/lib/domain/filter";
 import { countConditions, summarizeFilter } from "@/lib/domain/filter-summary";
 import { useFilterQuery } from "@/lib/hooks/useFilterQuery";
@@ -81,11 +82,23 @@ export function ProductList({
 
   // 고정 조건은 URL 조건 위에 덮어써서 사용자가 지울 수 없게 한다.
   const filter = { ...urlFilter, ...fixedFilter };
+  const codeIngredients: ExcludeCodeIngredients = new Map(
+    excludeCodes.map((code) => [code.code, code.ingredients.map((ingredient) => ingredient.id)]),
+  );
+  const conflicting = hasConflict(filter, codeIngredients);
 
-  const { items, brands: matchedBrands, total, page, hasNext, loadNext, loading } = useProductPages(filter);
-  const sentinel = useInfiniteScroll(hasNext && !loading, loadNext);
+  const {
+    items,
+    brands: matchedBrands,
+    total,
+    page,
+    hasNext,
+    loadNext,
+    loading,
+  } = useProductPages(filter, !conflicting);
+  const sentinel = useInfiniteScroll(!conflicting && hasNext && !loading, loadNext);
 
-  const empty = items.length === 0 && !loading;
+  const empty = !conflicting && items.length === 0 && !loading;
   const conditionCount = countConditions(filter);
 
   /**
@@ -97,9 +110,7 @@ export function ProductList({
   // 첫 장은 화면 진입과 같으므로 세지 않는다. 이어 붙인 장만 탐색 깊이로 본다.
   useEffect(() => {
     if (page > 0 && !loading) track("product_list_scrolled", { surface, page, loaded_count: items.length });
-    // 장이 늘었을 때만 남긴다. 같은 장에서 다시 그려도 보내지 않는다.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, loading]);
+  }, [items.length, loading, page, surface]);
 
   useEffect(() => {
     if (empty) track("empty_result_shown", { surface, condition_count: conditionCount });
@@ -119,7 +130,11 @@ export function ProductList({
       </div>
 
       <main className="flex-1 px-4">
-        {empty ? (
+        {conflicting ? (
+          <p role="alert" className="py-16 text-center text-[13px] text-brand">
+            함께 적용할 수 없는 성분 조건이에요. 성분 필터에서 한쪽 조건을 해제해 주세요.
+          </p>
+        ) : empty ? (
           <p className="py-16 text-center text-[13px] text-text-secondary">조건에 맞는 제품이 없어요</p>
         ) : (
           <ul className="divide-y divide-border">
@@ -204,17 +219,19 @@ const EMPTY_PAGE_STATE: Omit<PageState, "key"> = {
 };
 
 /** 조건이 바뀌면 목록을 처음부터 다시 쌓는다. */
-function useProductPages(filter: Filter) {
+function useProductPages(filter: Filter, enabled = true) {
   const key = JSON.stringify({ ...filter, page: 0 });
-  const [state, setState] = useState<PageState>({ ...EMPTY_PAGE_STATE, key });
+  const [state, setState] = useState<PageState>({ ...EMPTY_PAGE_STATE, key, loading: enabled });
 
   // 조건이 바뀌면 렌더링 중에 목록을 비운다. effect 에서 되돌리면 한 번 더 그리게 된다.
-  const current = state.key === key ? state : { ...EMPTY_PAGE_STATE, key };
+  const current = state.key === key ? state : { ...EMPTY_PAGE_STATE, key, loading: enabled };
   if (state.key !== key) setState(current);
 
   const { page } = current;
 
   useEffect(() => {
+    if (!enabled) return;
+
     const controller = new AbortController();
 
     fetchProducts({ ...JSON.parse(key), page })
@@ -240,7 +257,7 @@ function useProductPages(filter: Filter) {
       });
 
     return () => controller.abort();
-  }, [key, page]);
+  }, [enabled, key, page]);
 
   const loadNext = useCallback(() => {
     setState((previous) => ({ ...previous, page: previous.page + 1, loading: true }));

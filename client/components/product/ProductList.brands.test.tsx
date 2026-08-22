@@ -3,19 +3,27 @@
  */
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { HttpResponse, http } from "msw";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ProductList } from "./ProductList";
 
 import { brands, categories, excludeCodes } from "@/mocks/fixtures";
+import { server } from "@/mocks/server";
 
 vi.mock("@/lib/analytics/track", () => ({ track: vi.fn() }));
+
+const navigation = vi.hoisted(() => ({ searchParams: new URLSearchParams() }));
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/products",
   useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => navigation.searchParams,
 }));
+
+beforeEach(() => {
+  navigation.searchParams = new URLSearchParams();
+});
 
 const openBrandSheet = async () => {
   render(<ProductList categories={categories} brands={brands} excludeCodes={excludeCodes} />);
@@ -36,5 +44,30 @@ describe("ProductList 브랜드 시트", () => {
     // 닥터지(id 5)는 픽스처에 제품이 없어 목록에서 빠진다.
     await waitFor(() => expect(sheet.getByText("라운드랩")).toBeInTheDocument());
     expect(sheet.queryByText("닥터지")).not.toBeInTheDocument();
+  });
+
+  it("URL의 성분 조건이 충돌하면 제품 목록을 요청하지 않는다", async () => {
+    navigation.searchParams = new URLSearchParams({
+      includeIngredientIds: "101",
+      excludeCodes: "FRAGRANCE_ALLERGENS",
+    });
+    let requests = 0;
+    server.use(
+      http.get("*/api/products", () => {
+        requests += 1;
+        return HttpResponse.json({
+          items: [],
+          brands: [],
+          pagination: { page: 0, size: 20, totalElements: 0, totalPages: 0, hasNext: false },
+        });
+      }),
+    );
+
+    render(<ProductList categories={categories} brands={brands} excludeCodes={excludeCodes} />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("함께 적용할 수 없는 성분 조건이에요");
+    expect(screen.queryByText("불러오는 중…")).not.toBeInTheDocument();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(requests).toBe(0);
   });
 });
