@@ -6,6 +6,7 @@ import Link from "next/link";
 import { IngredientSearchPanel } from "./IngredientSearchPanel";
 
 import { Button } from "@/components/ui/Button";
+import { type ExcludeCodeIngredients, hasConflict } from "@/lib/domain/conflict";
 import { serializeFilter } from "@/lib/domain/filter";
 import { countConditions, summarizeFilter } from "@/lib/domain/filter-summary";
 import { useFilterQuery } from "@/lib/hooks/useFilterQuery";
@@ -22,9 +23,13 @@ export function IngredientSearchScreen({ excludeCodes }: { readonly excludeCodes
 
   const total = countConditions(filter);
   const summary = summarizeFilter(filter, names);
+  const codeIngredients: ExcludeCodeIngredients = new Map(
+    excludeCodes.map((code) => [code.code, code.ingredients.map((ingredient) => ingredient.id)]),
+  );
+  const conflicting = hasConflict(filter, codeIngredients);
 
   // 바텀시트와 같은 문구를 쓴다. 조건을 바꾸면 개수가 따라 바뀐다.
-  const count = useProductCount(filter);
+  const count = useProductCount(filter, undefined, !conflicting);
   const countLabel = count === undefined ? "" : `${count.toLocaleString("ko-KR")}개 `;
 
   return (
@@ -36,18 +41,22 @@ export function IngredientSearchScreen({ excludeCodes }: { readonly excludeCodes
       {total > 0 ? (
         <div className="sticky bottom-0 border-t border-border bg-white p-4">
           <p className="pb-2 text-[12px] text-text-secondary">{summary}</p>
-          <Link
-            href={`/products?${serializeFilter(filter).toString()}`}
-            onClick={() =>
-              addRecentFilter({
-                query: serializeFilter(filter).toString(),
-                summary,
-                mode: "ingredient",
-              })
-            }
-          >
-            <Button>{countLabel}조건에 맞는 제품 보기</Button>
-          </Link>
+          {conflicting ? (
+            <Button disabled>충돌하는 조건을 해제해 주세요</Button>
+          ) : (
+            <Link
+              href={`/products?${serializeFilter(filter).toString()}`}
+              onClick={() =>
+                addRecentFilter({
+                  query: serializeFilter(filter).toString(),
+                  summary,
+                  mode: "ingredient",
+                })
+              }
+            >
+              <Button>{countLabel}조건에 맞는 제품 보기</Button>
+            </Link>
+          )}
         </div>
       ) : null}
     </>

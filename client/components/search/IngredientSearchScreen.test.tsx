@@ -58,4 +58,25 @@ describe("IngredientSearchScreen", () => {
 
     expect(await screen.findByRole("button", { name: "3개 조건에 맞는 제품 보기" })).toBeInTheDocument();
   });
+
+  it("URL의 성분 조건이 충돌하면 제품 수를 요청하거나 결과 화면으로 이동할 수 없다", async () => {
+    searchParams.current = new URLSearchParams({
+      includeIngredientIds: "101",
+      excludeCodes: "FRAGRANCE_ALLERGENS",
+    });
+    let requests = 0;
+    server.use(
+      http.get("*/api/products/count", () => {
+        requests += 1;
+        return HttpResponse.json({ count: 0 });
+      }),
+    );
+
+    render(<IngredientSearchScreen excludeCodes={excludeCodes} />);
+
+    expect(screen.getByRole("button", { name: "충돌하는 조건을 해제해 주세요" })).toBeDisabled();
+    expect(screen.queryByRole("link", { name: /조건에 맞는 제품 보기/ })).not.toBeInTheDocument();
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    expect(requests).toBe(0);
+  });
 });
