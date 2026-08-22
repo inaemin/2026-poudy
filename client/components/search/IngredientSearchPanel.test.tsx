@@ -15,7 +15,7 @@ const excludeCodes: readonly ExcludeCodeResponse[] = [
     code: "FRAGRANCE_ALLERGENS",
     name: "향료/알레르기 성분 제외",
     description: "착향 목적의 성분입니다.",
-    ingredients: [{ id: 101, koreanName: "리모넨", englishName: "Limonene" }],
+    ingredients: [{ id: 6, koreanName: "판테놀", englishName: "Panthenol" }],
   },
 ];
 
@@ -155,5 +155,39 @@ describe("IngredientSearchPanel", () => {
 
     expect(screen.getByRole("checkbox", { name: /향료\/알레르기 성분 제외/ })).toBeInTheDocument();
     expect(screen.queryByText("착향 목적의 성분입니다.")).not.toBeInTheDocument();
+  });
+
+  it("제외한 성분군에 속한 성분은 포함 조건으로 고를 수 없다", async () => {
+    setup({ ...EMPTY_FILTER, excludeCodes: ["FRAGRANCE_ALLERGENS"] });
+
+    const row = await search();
+
+    expect(row.getByRole("button", { name: "판테놀 포함" })).toBeDisabled();
+  });
+
+  it("포함한 성분이 속한 빠른 필터는 고를 수 없다", () => {
+    setup({ ...EMPTY_FILTER, includeIngredientIds: [6] });
+
+    expect(screen.getByRole("checkbox", { name: /향료\/알레르기 성분 제외/ })).toBeDisabled();
+  });
+
+  it("이미 충돌하는 조건은 어느 쪽이든 해제할 수 있다", async () => {
+    const filter = {
+      ...EMPTY_FILTER,
+      includeIngredientIds: [6],
+      excludeCodes: ["FRAGRANCE_ALLERGENS"] as const,
+    };
+    const { onChange } = setup(filter);
+
+    const checkbox = screen.getByRole("checkbox", { name: /향료\/알레르기 성분 제외/ });
+    expect(checkbox).toBeEnabled();
+    await userEvent.click(checkbox);
+    expect(onChange).toHaveBeenCalledWith({ excludeCodes: [] });
+
+    const row = await search();
+    const includeButton = row.getByRole("button", { name: "판테놀 포함" });
+    expect(includeButton).toBeEnabled();
+    await userEvent.click(includeButton);
+    expect(onChange).toHaveBeenCalledWith({ includeIngredientIds: [], excludeIngredientIds: [] });
   });
 });

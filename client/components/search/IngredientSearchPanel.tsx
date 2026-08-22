@@ -10,7 +10,12 @@ import { SearchField } from "@/components/ui/SearchField";
 import { SelectedIngredientChip } from "@/components/ui/SelectedIngredientChip";
 import { track } from "@/lib/analytics/track";
 import { fetchIngredients } from "@/lib/api/products";
-import { type ExcludeCodeIngredients, findConflicts } from "@/lib/domain/conflict";
+import {
+  type ExcludeCodeIngredients,
+  findConflicts,
+  restrictedExcludeCodes,
+  restrictedIngredientIds,
+} from "@/lib/domain/conflict";
 import type { ExcludeCode, Filter } from "@/lib/domain/filter";
 import { useSuggestions } from "@/lib/hooks/useSuggestions";
 
@@ -59,21 +64,22 @@ export function IngredientSearchPanel({ filter, onChange, excludeCodes, names }:
     excludeCodes.map((code) => [code.code, code.ingredients.map((item) => item.id)]),
   );
   const conflicts = findConflicts(filter, codeIngredients);
+  const disabledIncludeIds = restrictedIngredientIds(filter, codeIngredients);
+  const disabledExcludeCodes = restrictedExcludeCodes(filter, codeIngredients);
 
   const selectedCount = filter.includeIngredientIds.length + filter.excludeIngredientIds.length;
 
   // 경고가 떠 있는 동안 다시 그려도 한 번만 남도록 걸린 성분으로 묶는다.
   const conflictKey = conflicts.flatMap((conflict) => conflict.ingredientIds).join(",");
+  const conflictCount = conflicts.length;
 
   useEffect(() => {
     if (!conflictKey) return;
     track("filter_conflict_shown", {
-      conflict_count: conflicts.length,
+      conflict_count: conflictCount,
       ingredient_count: conflictKey.split(",").length,
     });
-    // conflicts 는 렌더링마다 새로 만들어진다. 걸린 성분이 같으면 다시 보내지 않는다.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conflictKey]);
+  }, [conflictCount, conflictKey]);
 
   const remove = (key: ConditionKey, id: number) => {
     onChange({ [key]: filter[key].filter((value) => value !== id) });
@@ -131,6 +137,7 @@ export function IngredientSearchPanel({ filter, onChange, excludeCodes, names }:
               loading={loading}
               includedIds={filter.includeIngredientIds}
               excludedIds={filter.excludeIngredientIds}
+              disabledIncludeIds={disabledIncludeIds}
               onToggle={toggleIngredient}
             />
           ) : null}
@@ -190,26 +197,29 @@ export function IngredientSearchPanel({ filter, onChange, excludeCodes, names }:
             const checked = filter.excludeCodes.includes(code.code);
             return (
               <li key={code.code}>
-                <button
-                  type="button"
-                  role="checkbox"
-                  aria-checked={checked}
-                  onClick={() => toggleCode(code.code)}
+                <label
                   className={`flex h-13 w-full items-center gap-2 rounded-[10px] border px-2.5 text-left ${
-                    checked ? "border-transparent bg-[#F2F3F5]" : "border-[#DDE0E4] bg-[#F7F7F8]"
-                  }`}
+                    !checked && disabledExcludeCodes.has(code.code) ? "cursor-not-allowed opacity-40" : "cursor-pointer"
+                  } ${checked ? "border-transparent bg-[#F2F3F5]" : "border-[#DDE0E4] bg-[#F7F7F8]"}`}
                 >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    disabled={!checked && disabledExcludeCodes.has(code.code)}
+                    onChange={() => toggleCode(code.code)}
+                    className="peer sr-only"
+                  />
                   <span className={`flex-1 text-[11px] text-[#4D5159] ${checked ? "font-bold" : "font-semibold"}`}>
                     {code.name}
                   </span>
                   <span
-                    className={`flex size-[18px] shrink-0 items-center justify-center rounded border ${
+                    className={`flex size-[18px] shrink-0 items-center justify-center rounded border peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#212124] ${
                       checked ? "border-[#212124] bg-[#212124]" : "border-[#B9BDC5] bg-white"
                     }`}
                   >
                     {checked ? <Icon name="check" size={12} className="text-white" /> : null}
                   </span>
-                </button>
+                </label>
               </li>
             );
           })}

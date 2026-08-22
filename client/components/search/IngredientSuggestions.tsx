@@ -11,6 +11,7 @@ type IngredientSuggestionsProps = {
   readonly loading: boolean;
   readonly includedIds: readonly number[];
   readonly excludedIds: readonly number[];
+  readonly disabledIncludeIds: ReadonlySet<number>;
   readonly onToggle: (key: "includeIngredientIds" | "excludeIngredientIds", item: IngredientResponse) => void;
 };
 
@@ -20,6 +21,7 @@ export function IngredientSuggestions({
   loading,
   includedIds,
   excludedIds,
+  disabledIncludeIds,
   onToggle,
 }: IngredientSuggestionsProps) {
   return (
@@ -53,6 +55,7 @@ export function IngredientSuggestions({
                 <ConditionButton
                   kind="include"
                   active={includedIds.includes(item.id)}
+                  disabled={!includedIds.includes(item.id) && disabledIncludeIds.has(item.id)}
                   ingredientName={item.koreanName}
                   onClick={() => onToggle("includeIngredientIds", item)}
                 />
