@@ -12,6 +12,7 @@ type BottomSheetProps = {
   readonly onReset?: () => void;
   /** 적용 버튼 문구. 디자인은 `3개 제품 보기` 처럼 개수를 함께 보여 준다. */
   readonly submitLabel: string;
+  readonly submitDisabled?: boolean;
   readonly onSubmit: () => void;
   readonly children: React.ReactNode;
 };
@@ -26,6 +27,7 @@ export function BottomSheet({
   onClose,
   onReset,
   submitLabel,
+  submitDisabled = false,
   onSubmit,
   children,
 }: BottomSheetProps) {
@@ -118,8 +120,9 @@ export function BottomSheet({
           ) : null}
           <button
             type="button"
+            disabled={submitDisabled}
             onClick={onSubmit}
-            className="h-12 flex-1 rounded-[10px] bg-[#212124] text-[14px] font-bold text-white"
+            className="h-12 flex-1 rounded-[10px] bg-[#212124] text-[14px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"
           >
             {submitLabel}
           </button>

@@ -11,6 +11,7 @@ import { LevelRange } from "./LevelRangeOptions";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import type { FilterType } from "@/lib/analytics/events";
 import { track } from "@/lib/analytics/track";
+import { type ExcludeCodeIngredients, hasConflict } from "@/lib/domain/conflict";
 import type { Filter } from "@/lib/domain/filter";
 import { useIngredientNames } from "@/lib/hooks/useIngredientNames";
 import { useProductCount } from "@/lib/hooks/useProductCount";
@@ -71,7 +72,11 @@ function SheetBody({
   initialCount,
 }: Omit<FilterSheetsProps, "openSheet"> & { readonly kind: SheetKind }) {
   const [draft, setDraft] = useState<Filter>(filter);
-  const count = useProductCount(draft, initialCount);
+  const codeIngredients: ExcludeCodeIngredients = new Map(
+    excludeCodes.map((code) => [code.code, code.ingredients.map((ingredient) => ingredient.id)]),
+  );
+  const conflicting = hasConflict(draft, codeIngredients);
+  const count = useProductCount(draft, initialCount, !conflicting);
 
   // 담긴 성분의 이름은 서버에서 가져온다.
   const names = useIngredientNames([...draft.includeIngredientIds, ...draft.excludeIngredientIds]);
@@ -100,6 +105,7 @@ function SheetBody({
       onClose={onClose}
       onReset={reset}
       submitLabel={submitLabel}
+      submitDisabled={conflicting}
       onSubmit={() => {
         onApply(draft);
         onClose();
