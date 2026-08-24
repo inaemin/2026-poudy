@@ -1,8 +1,16 @@
-import { http, HttpResponse } from "msw";
-
-import { brands, categories, excludeCodes, ingredientDetails, productDetails, products } from "./fixtures";
+import { HttpResponse, http } from "msw";
 
 import { INGREDIENT_SEARCH_LIMIT } from "@/lib/domain/ingredient-search";
+
+import {
+  brands,
+  categories,
+  excludeCodes,
+  ingredientDetails,
+  productDetails,
+  productIngredientIds,
+  products,
+} from "./fixtures";
 
 const numbers = (url: URL, key: string) =>
   url.searchParams
@@ -10,6 +18,12 @@ const numbers = (url: URL, key: string) =>
     .flatMap((value) => value.split(","))
     .map(Number)
     .filter(Number.isFinite);
+
+const strings = (url: URL, key: string) =>
+  url.searchParams
+    .getAll(key)
+    .flatMap((value) => value.split(","))
+    .filter(Boolean);
 
 const notFound = (detail: string, code: string) =>
   HttpResponse.json({ title: "Not Found", status: 404, detail, code }, { status: 404 });
@@ -40,8 +54,17 @@ const filterProducts = (url: URL) => {
   const brandIds = numbers(url, "brandIds");
   const moisture = numbers(url, "moistureLevel");
   const oil = numbers(url, "oilLevel");
+  const includeIngredientIds = numbers(url, "includeIngredientIds");
+  const excludeIngredientIds = numbers(url, "excludeIngredientIds");
+  const excludeCodeValues = strings(url, "excludeCodes");
+  const excludedByCode = new Set(
+    excludeCodes
+      .filter((code) => excludeCodeValues.includes(code.code))
+      .flatMap((code) => code.ingredients.map((ingredient) => ingredient.id)),
+  );
 
   return products.filter((product) => {
+    const ingredientIds = productIngredientIds.get(product.id) ?? [];
     if (keyword) {
       const haystack = `${product.name} ${product.brand.name}`.toLowerCase();
       if (!haystack.includes(keyword)) return false;
@@ -49,6 +72,9 @@ const filterProducts = (url: URL) => {
     if (brandIds.length && !brandIds.includes(product.brand.id)) return false;
     if (moisture.length && !moisture.includes(product.moistureLevel)) return false;
     if (oil.length && !oil.includes(product.oilLevel)) return false;
+    if (includeIngredientIds.some((id) => !ingredientIds.includes(id))) return false;
+    if (excludeIngredientIds.some((id) => ingredientIds.includes(id))) return false;
+    if (ingredientIds.some((id) => excludedByCode.has(id))) return false;
     return true;
   });
 };

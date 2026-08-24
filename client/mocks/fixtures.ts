@@ -92,6 +92,14 @@ export const products: ProductResponse[] = [
   },
 ];
 
+export const productIngredientIds = new Map<number, readonly number[]>([
+  [1, [6, 101]],
+  [2, [6]],
+  [3, [112]],
+  [4, [6, 102]],
+  [5, [101, 112]],
+]);
+
 export const categories: CategoryResponse[] = [
   {
     id: 1,
@@ -127,7 +135,10 @@ export const excludeCodes: ExcludeCodeResponse[] = [
     code: "DRYING_ALCOHOLS",
     name: "건조 알코올 제외",
     description: "휘발성이 높아 건조함을 유발할 수 있는 알코올입니다.",
-    ingredients: [{ id: 111, koreanName: "변성알코올", englishName: "Alcohol Denat." }],
+    ingredients: [
+      { id: 111, koreanName: "변성알코올", englishName: "Alcohol Denat." },
+      { id: 112, koreanName: "에탄올", englishName: "Alcohol" },
+    ],
   },
   {
     code: "HARSH_PRESERVATIVES",
@@ -420,6 +431,45 @@ export const ingredientDetails: IngredientDetailResponse[] = [
     skinEffects: [보습],
     groupCodes: [],
     productCount: 42,
+    infoSources: 성분정보출처,
+    effectSources: 성분효과출처,
+    updatedAt: "2026-08-03T00:00:00+09:00",
+  },
+  {
+    id: 101,
+    koreanName: "리모넨",
+    englishName: "Limonene",
+    description: "감귤류 껍질 등에 존재하며 향을 내는 데 쓰이는 성분으로, 알레르기 유발 성분으로 표시될 수 있습니다.",
+    formulationRoles: [{ id: 6, code: "PERFUMING", name: "향료" }],
+    skinEffects: [],
+    groupCodes: ["FRAGRANCE_ALLERGENS"],
+    productCount: 31,
+    infoSources: 성분정보출처,
+    effectSources: 성분효과출처,
+    updatedAt: "2026-08-03T00:00:00+09:00",
+  },
+  {
+    id: 102,
+    koreanName: "리날룰",
+    englishName: "Linalool",
+    description: "꽃과 허브 계열 향을 내는 데 쓰이며 알레르기 유발 성분으로 표시될 수 있습니다.",
+    formulationRoles: [{ id: 6, code: "PERFUMING", name: "향료" }],
+    skinEffects: [],
+    groupCodes: ["FRAGRANCE_ALLERGENS"],
+    productCount: 18,
+    infoSources: 성분정보출처,
+    effectSources: 성분효과출처,
+    updatedAt: "2026-08-03T00:00:00+09:00",
+  },
+  {
+    id: 112,
+    koreanName: "에탄올",
+    englishName: "Alcohol",
+    description: "용제로 쓰이는 휘발성 알코올로, 피부 상태와 배합량에 따라 건조하게 느껴질 수 있습니다.",
+    formulationRoles: [{ id: 2, code: "SOLVENT", name: "용제" }],
+    skinEffects: [],
+    groupCodes: ["DRYING_ALCOHOLS"],
+    productCount: 14,
     infoSources: 성분정보출처,
     effectSources: 성분효과출처,
     updatedAt: "2026-08-03T00:00:00+09:00",
