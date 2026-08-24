@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useId, useRef } from "react";
+import { useId, useRef } from "react";
 
 import { Icon } from "./icons/Icon";
+
+import { useModalLifecycle } from "@/lib/hooks/useModalLifecycle";
 
 type BottomSheetProps = {
   readonly open: boolean;
@@ -16,8 +18,6 @@ type BottomSheetProps = {
   readonly onSubmit: () => void;
   readonly children: React.ReactNode;
 };
-
-const FOCUSABLE = 'button:not([disabled]), input, [href], [tabindex]:not([tabindex="-1"])';
 
 /** 디자인의 필터 바텀시트 껍데기. 내용만 바꿔 카테고리·브랜드·유수분·성분에 함께 쓴다. */
 export function BottomSheet({
@@ -33,49 +33,20 @@ export function BottomSheet({
 }: BottomSheetProps) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
-
-  useEffect(() => {
-    if (!open) return;
-
-    const sheet = sheetRef.current;
-    const previouslyFocused = document.activeElement as HTMLElement | null;
-    sheet?.querySelector<HTMLElement>(FOCUSABLE)?.focus();
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-        return;
-      }
-      if (event.key !== "Tab" || !sheet) return;
-
-      // 시트가 열려 있는 동안 초점이 바깥으로 나가지 않게 한다.
-      const focusable = [...sheet.querySelectorAll<HTMLElement>(FOCUSABLE)];
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (!first || !last) return;
-
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      previouslyFocused?.focus();
-    };
-  }, [open, onClose]);
+  useModalLifecycle(sheetRef, { active: open, onEscape: onClose });
 
   if (!open) return null;
 
   return (
     <>
       {/* 하단 내비게이션이 sticky 라 시트가 그 위에 오도록 z-index 를 올린다. */}
-      <div className="fixed inset-0 z-40 bg-black/40" onClick={onClose} aria-hidden="true" />
+      <div
+        data-modal-backdrop
+        data-testid="bottom-sheet-backdrop"
+        className="fixed inset-0 z-40 bg-black/40"
+        onClick={onClose}
+        aria-hidden="true"
+      />
 
       <div
         ref={sheetRef}

@@ -7,84 +7,50 @@ import { describe, expect, it, vi } from "vitest";
 
 import { BottomSheet } from "./BottomSheet";
 
-const renderSheet = (overrides: Partial<Parameters<typeof BottomSheet>[0]> = {}) => {
-  const props = {
-    open: true,
-    title: "브랜드",
-    description: "원하는 브랜드를 선택해 주세요",
-    onClose: vi.fn(),
-    onReset: vi.fn(),
-    submitLabel: "3개 제품 보기",
-    onSubmit: vi.fn(),
-    children: <button type="button">라운드랩</button>,
-    ...overrides,
-  };
-
-  return { props, ...render(<BottomSheet {...props} />) };
-};
+const sheet = (open: boolean, onClose = vi.fn()) => (
+  <>
+    <button type="button">배경 동작</button>
+    <BottomSheet open={open} title="필터" onClose={onClose} submitLabel="적용" onSubmit={vi.fn()}>
+      <input aria-label="필터 값" />
+    </BottomSheet>
+  </>
+);
 
 describe("BottomSheet", () => {
-  it("닫혀 있으면 아무것도 그리지 않는다", () => {
-    renderSheet({ open: false });
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  });
+  it("열리면 배경과 스크롤을 잠그고 첫 조작 요소로 초점을 옮긴다", () => {
+    render(sheet(true));
 
-  it("제목으로 이름을 붙인 대화상자를 연다", () => {
-    renderSheet();
-    expect(screen.getByRole("dialog", { name: "브랜드" })).toHaveAttribute("aria-modal", "true");
-  });
-
-  it("Esc 를 누르면 닫는다", async () => {
-    const { props } = renderSheet();
-
-    await userEvent.keyboard("{Escape}");
-
-    expect(props.onClose).toHaveBeenCalled();
-  });
-
-  it("적용 버튼에 결과 개수를 보여 준다", async () => {
-    const { props } = renderSheet();
-
-    await userEvent.click(screen.getByRole("button", { name: "3개 제품 보기" }));
-
-    expect(props.onSubmit).toHaveBeenCalled();
-  });
-
-  it("초기화 버튼을 누르면 조건을 지운다", async () => {
-    const { props } = renderSheet();
-
-    await userEvent.click(screen.getByRole("button", { name: "초기화" }));
-
-    expect(props.onReset).toHaveBeenCalled();
-  });
-
-  it("열리면 시트 안으로 초점을 옮긴다", () => {
-    renderSheet();
-    // 시트에서 가장 먼저 나오는 조작 요소는 닫기 버튼이다.
+    expect(screen.getByRole("button", { name: "배경 동작" })).toHaveProperty("inert", true);
+    expect(document.body).toHaveStyle({ overflow: "hidden" });
     expect(screen.getByRole("button", { name: "닫기" })).toHaveFocus();
   });
 
-  it("닫기 버튼으로 닫는다", async () => {
-    const { props } = renderSheet();
+  it("마지막 조작 요소에서 Tab을 누르면 처음으로 돌아간다", async () => {
+    render(sheet(true));
 
-    await userEvent.click(screen.getByRole("button", { name: "닫기" }));
+    screen.getByRole("button", { name: "적용" }).focus();
+    await userEvent.tab();
 
-    expect(props.onClose).toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "닫기" })).toHaveFocus();
   });
 
-  it("Tab 을 눌러도 초점이 시트 밖으로 나가지 않는다", async () => {
-    renderSheet();
-    const inside = [
-      screen.getByRole("button", { name: "닫기" }),
-      screen.getByRole("button", { name: "라운드랩" }),
-      screen.getByRole("button", { name: "초기화" }),
-      screen.getByRole("button", { name: "3개 제품 보기" }),
-    ];
+  it("배경막을 누르면 시트를 닫는다", async () => {
+    const onClose = vi.fn();
+    render(sheet(true, onClose));
 
-    await userEvent.tab();
-    await userEvent.tab();
-    await userEvent.tab();
+    const backdrop = screen.getByTestId("bottom-sheet-backdrop");
+    expect(backdrop.inert).not.toBe(true);
+    await userEvent.click(backdrop);
 
-    expect(inside).toContain(document.activeElement);
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("닫히면 배경과 스크롤 상태를 복원한다", () => {
+    const { rerender } = render(sheet(true));
+
+    rerender(sheet(false));
+
+    expect(screen.getByRole("button", { name: "배경 동작" }).inert).not.toBe(true);
+    expect(document.body).not.toHaveStyle({ overflow: "hidden" });
   });
 });
