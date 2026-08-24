@@ -126,14 +126,27 @@ export function ProductList({
           chips={chipsOf(filter).filter((chip) => !hiddenChips.includes(chip.id))}
           onOpen={(id) => setOpenSheet(id as SheetKind)}
         />
-        <SortHeader total={total} sort={filter.sort} onChangeSort={onChangeSort} />
+        {conflicting ? null : <SortHeader total={total} sort={filter.sort} onChangeSort={onChangeSort} />}
       </div>
 
       <main className="flex-1 px-4">
         {conflicting ? (
-          <p role="alert" className="py-16 text-center text-[13px] text-brand">
-            함께 적용할 수 없는 성분 조건이에요. 성분 필터에서 한쪽 조건을 해제해 주세요.
-          </p>
+          <section role="alert" className="flex flex-col items-center px-5 py-16 text-center">
+            <p className="text-[17px] font-bold text-text-primary">
+              제품을 불러오기 전에 <span className="whitespace-nowrap">성분 조건을 확인해 주세요</span>
+            </p>
+            <p className="pt-2 text-[13px] leading-5 text-text-secondary">
+              같은 성분을 포함하고 제외했거나,{" "}
+              <span className="whitespace-nowrap">제외한 성분군의 성분을 포함하고 있어요.</span>
+            </p>
+            <button
+              type="button"
+              onClick={() => setOpenSheet("ingredient")}
+              className="mt-5 h-11 rounded-[10px] bg-[#212124] px-5 text-[13px] font-bold text-white"
+            >
+              성분 조건 수정하기
+            </button>
+          </section>
         ) : empty ? (
           <p className="py-16 text-center text-[13px] text-text-secondary">조건에 맞는 제품이 없어요</p>
         ) : (
