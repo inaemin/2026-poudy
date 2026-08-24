@@ -11,8 +11,9 @@ type IngredientSuggestionsProps = {
   readonly loading: boolean;
   readonly includedIds: readonly number[];
   readonly excludedIds: readonly number[];
-  readonly disabledIncludeIds: ReadonlySet<number>;
+  readonly blockedIncludeIds: ReadonlySet<number>;
   readonly onToggle: (key: "includeIngredientIds" | "excludeIngredientIds", item: IngredientResponse) => void;
+  readonly onRelease: (ingredientId: number) => void;
 };
 
 export function IngredientSuggestions({
@@ -21,8 +22,9 @@ export function IngredientSuggestions({
   loading,
   includedIds,
   excludedIds,
-  disabledIncludeIds,
+  blockedIncludeIds,
   onToggle,
+  onRelease,
 }: IngredientSuggestionsProps) {
   return (
     <div className="absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-xl border border-[#E8E9EC] bg-white shadow-lg">
@@ -39,35 +41,52 @@ export function IngredientSuggestions({
         <p className="flex min-h-40 items-center justify-center text-[13px] text-text-secondary">찾는 성분이 없어요</p>
       ) : (
         <ul aria-label="성분 검색 결과">
-          {items.map((item) => (
-            <li
-              key={item.id}
-              className="flex h-[58px] items-center gap-1.5 border-b border-[#EEF0F3] px-3.5 last:border-b-0"
-            >
-              <span className="flex min-w-0 flex-1 flex-col gap-[3px]">
-                <span className="truncate text-[12px] font-semibold text-text-primary">{item.koreanName}</span>
-                <span className="truncate text-[10px] text-text-secondary">
-                  {item.skinEffects.map((effect) => effect.name).join(" · ")}
+          {items.map((item) => {
+            const included = includedIds.includes(item.id);
+            const blocked = !included && blockedIncludeIds.has(item.id);
+            return (
+              <li
+                key={item.id}
+                className="flex h-[58px] items-center gap-1.5 border-b border-[#EEF0F3] px-3.5 last:border-b-0"
+              >
+                <span className="flex min-w-0 flex-1 flex-col gap-[3px]">
+                  <span className="truncate text-[12px] font-semibold text-text-primary">{item.koreanName}</span>
+                  <span className="truncate text-[10px] text-text-secondary">
+                    {item.skinEffects.map((effect) => effect.name).join(" · ")}
+                  </span>
                 </span>
-              </span>
 
-              <span className="flex shrink-0 gap-1.5">
-                <ConditionButton
-                  kind="include"
-                  active={includedIds.includes(item.id)}
-                  disabled={!includedIds.includes(item.id) && disabledIncludeIds.has(item.id)}
-                  ingredientName={item.koreanName}
-                  onClick={() => onToggle("includeIngredientIds", item)}
-                />
-                <ConditionButton
-                  kind="exclude"
-                  active={excludedIds.includes(item.id)}
-                  ingredientName={item.koreanName}
-                  onClick={() => onToggle("excludeIngredientIds", item)}
-                />
-              </span>
-            </li>
-          ))}
+                {blocked ? (
+                  <span className="flex shrink-0 items-center gap-2">
+                    <span className="text-[11px] font-semibold text-brand">제외 중</span>
+                    <button
+                      type="button"
+                      onClick={() => onRelease(item.id)}
+                      aria-label={`${item.koreanName} 차단 필터 해제`}
+                      className="h-8 rounded-2xl border border-brand px-3 text-[11px] font-bold text-brand"
+                    >
+                      필터 해제
+                    </button>
+                  </span>
+                ) : (
+                  <span className="flex shrink-0 gap-1.5">
+                    <ConditionButton
+                      kind="include"
+                      active={included}
+                      ingredientName={item.koreanName}
+                      onClick={() => onToggle("includeIngredientIds", item)}
+                    />
+                    <ConditionButton
+                      kind="exclude"
+                      active={excludedIds.includes(item.id)}
+                      ingredientName={item.koreanName}
+                      onClick={() => onToggle("excludeIngredientIds", item)}
+                    />
+                  </span>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

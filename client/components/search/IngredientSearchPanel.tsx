@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { IngredientSuggestions } from "./IngredientSuggestions";
 
+import { QuickFilterOptions } from "@/components/filter/QuickFilterOptions";
 import { Icon } from "@/components/ui/icons/Icon";
 import { SearchField } from "@/components/ui/SearchField";
 import { SelectedIngredientChip } from "@/components/ui/SelectedIngredientChip";
@@ -13,10 +14,10 @@ import { fetchIngredients } from "@/lib/api/products";
 import {
   type ExcludeCodeIngredients,
   findConflicts,
-  restrictedExcludeCodes,
+  releaseIngredientFromExcludeCodes,
   restrictedIngredientIds,
 } from "@/lib/domain/conflict";
-import type { ExcludeCode, Filter } from "@/lib/domain/filter";
+import type { Filter } from "@/lib/domain/filter";
 import { useSuggestions } from "@/lib/hooks/useSuggestions";
 
 type ConditionKey = "includeIngredientIds" | "excludeIngredientIds";
@@ -64,8 +65,7 @@ export function IngredientSearchPanel({ filter, onChange, excludeCodes, names }:
     excludeCodes.map((code) => [code.code, code.ingredients.map((item) => item.id)]),
   );
   const conflicts = findConflicts(filter, codeIngredients);
-  const disabledIncludeIds = restrictedIngredientIds(filter, codeIngredients);
-  const disabledExcludeCodes = restrictedExcludeCodes(filter, codeIngredients);
+  const blockedIncludeIds = restrictedIngredientIds(filter, codeIngredients);
 
   const selectedCount = filter.includeIngredientIds.length + filter.excludeIngredientIds.length;
 
@@ -116,13 +116,6 @@ export function IngredientSearchPanel({ filter, onChange, excludeCodes, names }:
     });
   };
 
-  const toggleCode = (code: ExcludeCode) =>
-    onChange({
-      excludeCodes: filter.excludeCodes.includes(code)
-        ? filter.excludeCodes.filter((item) => item !== code)
-        : [...filter.excludeCodes, code],
-    });
-
   return (
     <div className="flex flex-col px-4 pt-3 pb-5">
       <section className="flex flex-col gap-2 pb-4">
@@ -137,8 +130,13 @@ export function IngredientSearchPanel({ filter, onChange, excludeCodes, names }:
               loading={loading}
               includedIds={filter.includeIngredientIds}
               excludedIds={filter.excludeIngredientIds}
-              disabledIncludeIds={disabledIncludeIds}
+              blockedIncludeIds={blockedIncludeIds}
               onToggle={toggleIngredient}
+              onRelease={(ingredientId) =>
+                onChange({
+                  excludeCodes: releaseIngredientFromExcludeCodes(filter, ingredientId, codeIngredients).excludeCodes,
+                })
+              }
             />
           ) : null}
         </div>
@@ -184,47 +182,14 @@ export function IngredientSearchPanel({ filter, onChange, excludeCodes, names }:
         </p>
       ) : null}
 
-      <section className="flex flex-col gap-2.5 py-5">
-        <div className="flex items-center gap-1.5 px-0.5">
-          <h2 className="text-[15px] font-bold text-[#212124]">빠른 필터</h2>
-          {filter.excludeCodes.length > 0 ? (
-            <span className="text-[12px] font-medium text-[#868B94]">{filter.excludeCodes.length}개 선택</span>
-          ) : null}
-        </div>
-
-        <ul className="grid grid-cols-2 gap-2">
-          {excludeCodes.map((code) => {
-            const checked = filter.excludeCodes.includes(code.code);
-            return (
-              <li key={code.code}>
-                <label
-                  className={`flex h-13 w-full items-center gap-2 rounded-[10px] border px-2.5 text-left ${
-                    !checked && disabledExcludeCodes.has(code.code) ? "cursor-not-allowed opacity-40" : "cursor-pointer"
-                  } ${checked ? "border-transparent bg-[#F2F3F5]" : "border-[#DDE0E4] bg-[#F7F7F8]"}`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    disabled={!checked && disabledExcludeCodes.has(code.code)}
-                    onChange={() => toggleCode(code.code)}
-                    className="peer sr-only"
-                  />
-                  <span className={`flex-1 text-[11px] text-[#4D5159] ${checked ? "font-bold" : "font-semibold"}`}>
-                    {code.name}
-                  </span>
-                  <span
-                    className={`flex size-[18px] shrink-0 items-center justify-center rounded border peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#212124] ${
-                      checked ? "border-[#212124] bg-[#212124]" : "border-[#B9BDC5] bg-white"
-                    }`}
-                  >
-                    {checked ? <Icon name="check" size={12} className="text-white" /> : null}
-                  </span>
-                </label>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+      <QuickFilterOptions
+        filter={filter}
+        onChange={onChange}
+        excludeCodes={excludeCodes}
+        codeIngredients={codeIngredients}
+        names={names}
+        className="flex flex-col gap-2.5 py-5"
+      />
 
       <hr className="border-0 border-t border-[#F2F3F6]" />
 
@@ -235,5 +200,3 @@ export function IngredientSearchPanel({ filter, onChange, excludeCodes, names }:
     </div>
   );
 }
-
-/** 디자인의 포함·제외 버튼. 고른 쪽만 채워진다. */
