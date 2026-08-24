@@ -3,14 +3,19 @@
 import type { ExcludeCodeResponse, IngredientResponse } from "@poudy/api/api.zod";
 import { useState } from "react";
 
+import { QuickFilterOptions } from "./QuickFilterOptions";
+
 import { ConditionButton } from "@/components/ui/ConditionButton";
-import { Icon } from "@/components/ui/icons/Icon";
 import { SearchField } from "@/components/ui/SearchField";
 import { SelectedIngredientChip } from "@/components/ui/SelectedIngredientChip";
 import { track } from "@/lib/analytics/track";
 import { fetchIngredients } from "@/lib/api/products";
-import { type ExcludeCodeIngredients, restrictedExcludeCodes, restrictedIngredientIds } from "@/lib/domain/conflict";
-import type { ExcludeCode, Filter } from "@/lib/domain/filter";
+import {
+  type ExcludeCodeIngredients,
+  releaseIngredientFromExcludeCodes,
+  restrictedIngredientIds,
+} from "@/lib/domain/conflict";
+import type { Filter } from "@/lib/domain/filter";
 import { ingredientCountLabel } from "@/lib/domain/ingredient-search";
 import { useSuggestions } from "@/lib/hooks/useSuggestions";
 
@@ -34,8 +39,7 @@ export function IngredientOptions({ draft, setDraft, excludeCodes, names }: Ingr
   const codeIngredients: ExcludeCodeIngredients = new Map(
     excludeCodes.map((code) => [code.code, code.ingredients.map((ingredient) => ingredient.id)]),
   );
-  const disabledIncludeIds = restrictedIngredientIds(draft, codeIngredients);
-  const disabledExcludeCodes = restrictedExcludeCodes(draft, codeIngredients);
+  const blockedIncludeIds = restrictedIngredientIds(draft, codeIngredients);
 
   const selectedCount = draft.includeIngredientIds.length + draft.excludeIngredientIds.length;
 
@@ -71,14 +75,6 @@ export function IngredientOptions({ draft, setDraft, excludeCodes, names }: Ingr
   const removeIngredient = (key: "includeIngredientIds" | "excludeIngredientIds", id: number) =>
     setDraft({ ...draft, [key]: draft[key].filter((value) => value !== id) });
 
-  const toggleCode = (code: ExcludeCode) =>
-    setDraft({
-      ...draft,
-      excludeCodes: draft.excludeCodes.includes(code)
-        ? draft.excludeCodes.filter((item) => item !== code)
-        : [...draft.excludeCodes, code],
-    });
-
   return (
     <>
       <SearchField value={keyword} onChange={setKeyword} placeholder="성분명 검색" label="성분명 검색" />
@@ -101,6 +97,7 @@ export function IngredientOptions({ draft, setDraft, excludeCodes, names }: Ingr
               {items.map((item) => {
                 const included = draft.includeIngredientIds.includes(item.id);
                 const excluded = draft.excludeIngredientIds.includes(item.id);
+                const blocked = !included && blockedIncludeIds.has(item.id);
 
                 return (
                   <li key={item.id} className="flex h-[58px] items-center gap-1.5 border-b border-[#EEF0F3]">
@@ -111,21 +108,34 @@ export function IngredientOptions({ draft, setDraft, excludeCodes, names }: Ingr
                       </span>
                     </span>
 
-                    <span className="flex shrink-0 gap-1.5">
-                      <ConditionButton
-                        kind="include"
-                        active={included}
-                        disabled={!included && disabledIncludeIds.has(item.id)}
-                        ingredientName={item.koreanName}
-                        onClick={() => toggleIngredient("includeIngredientIds", item)}
-                      />
-                      <ConditionButton
-                        kind="exclude"
-                        active={excluded}
-                        ingredientName={item.koreanName}
-                        onClick={() => toggleIngredient("excludeIngredientIds", item)}
-                      />
-                    </span>
+                    {blocked ? (
+                      <span className="flex shrink-0 items-center gap-2">
+                        <span className="text-[11px] font-semibold text-brand">제외 중</span>
+                        <button
+                          type="button"
+                          onClick={() => setDraft(releaseIngredientFromExcludeCodes(draft, item.id, codeIngredients))}
+                          aria-label={`${item.koreanName} 차단 필터 해제`}
+                          className="h-8 rounded-2xl border border-brand px-3 text-[11px] font-bold text-brand"
+                        >
+                          필터 해제
+                        </button>
+                      </span>
+                    ) : (
+                      <span className="flex shrink-0 gap-1.5">
+                        <ConditionButton
+                          kind="include"
+                          active={included}
+                          ingredientName={item.koreanName}
+                          onClick={() => toggleIngredient("includeIngredientIds", item)}
+                        />
+                        <ConditionButton
+                          kind="exclude"
+                          active={excluded}
+                          ingredientName={item.koreanName}
+                          onClick={() => toggleIngredient("excludeIngredientIds", item)}
+                        />
+                      </span>
+                    )}
                   </li>
                 );
               })}
@@ -170,50 +180,14 @@ export function IngredientOptions({ draft, setDraft, excludeCodes, names }: Ingr
             )}
           </section>
 
-          <section className="pt-4">
-            <h3 className="flex h-6 items-center gap-1.5">
-              <span className="text-[15px] font-bold text-[#212124]">빠른 필터</span>
-              {draft.excludeCodes.length > 0 ? (
-                <span className="text-[12px] font-medium text-[#868B94]">{draft.excludeCodes.length}개 선택</span>
-              ) : null}
-            </h3>
-
-            <ul className="grid grid-cols-2 gap-2 pt-2">
-              {excludeCodes.map((code) => {
-                const checked = draft.excludeCodes.includes(code.code);
-
-                return (
-                  <li key={code.code}>
-                    <label
-                      className={`flex h-13 w-full items-center gap-2 rounded-[10px] border px-2.5 text-left ${
-                        !checked && disabledExcludeCodes.has(code.code)
-                          ? "cursor-not-allowed opacity-40"
-                          : "cursor-pointer"
-                      } ${checked ? "border-transparent bg-[#F2F3F5]" : "border-[#DDE0E4] bg-[#F7F7F8]"}`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        disabled={!checked && disabledExcludeCodes.has(code.code)}
-                        onChange={() => toggleCode(code.code)}
-                        className="peer sr-only"
-                      />
-                      <span className={`flex-1 text-[11px] text-[#4D5159] ${checked ? "font-bold" : "font-semibold"}`}>
-                        {code.name}
-                      </span>
-                      <span
-                        className={`flex size-[18px] shrink-0 items-center justify-center rounded border peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#212124] ${
-                          checked ? "border-[#212124] bg-[#212124]" : "border-[#B9BDC5] bg-white"
-                        }`}
-                      >
-                        {checked ? <Icon name="check" size={12} className="text-white" /> : null}
-                      </span>
-                    </label>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
+          <QuickFilterOptions
+            filter={draft}
+            onChange={setDraft}
+            excludeCodes={excludeCodes}
+            codeIngredients={codeIngredients}
+            names={names}
+            className="pt-4"
+          />
         </>
       )}
     </>
